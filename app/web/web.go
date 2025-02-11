@@ -14,14 +14,6 @@ func Start() {
 	listen := config.GetListen()
 	r := gin.New()
 	r.Use(gin.LoggerWithWriter(log.GetWriter()), gin.Recovery())
-	r.Use(func(ctx *gin.Context) {
-		var _host = "http://" + ctx.Request.Host
-		if ctx.Request.TLS != nil {
-			_host = "https://" + ctx.Request.Host
-		}
-		_host = config.GetAppUri(_host)
-		ctx.Set("HTTP_HOST", _host)
-	})
 	route := r.Group("/api/order")
 	{
 		route.GET("/:trade_id", CheckStatus)
@@ -31,6 +23,7 @@ func Start() {
 				log.Error(err.Error())
 				ctx.JSON(400, gin.H{"error": err.Error()})
 				ctx.Abort()
+				return
 			}
 			m := make(map[string]any)
 			err = sonic.Unmarshal(_data, &m)

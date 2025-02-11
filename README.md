@@ -69,11 +69,12 @@ Response example:
 
 ```json
 {
-    "code": 200,
-    "data": {
-        "trade_id": "xxxxxx",  // Trade ID
-        "checkout_url": "http://xxx.xxx/pay/checkout-counter/xxxxxx" // Checkout counter URL
-    }
+    "trade_id":        "string",
+    "order_id":        "string",
+    "amount":          100.0,
+    "actual_amount":   15.9,
+    "token":           "string",
+    "expiration_time": 600,
 }
 ```
 

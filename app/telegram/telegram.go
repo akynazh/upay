@@ -20,8 +20,6 @@ func init() {
 	botApi, err = tgbotapi.NewBotAPI(token)
 	if err != nil {
 		panic("TG Bot NewBotAPI Error:" + err.Error())
-
-		return
 	}
 
 	// 注册命令
@@ -34,11 +32,9 @@ func init() {
 	}...))
 	if err != nil {
 		panic("TG Bot Request Error:" + err.Error())
-
-		return
 	}
 
-	fmt.Println("Bot UserName: ", botApi.Self.UserName)
+	fmt.Println("Bot UserName:", botApi.Self.UserName)
 }
 
 func GetBotApi() *tgbotapi.BotAPI {

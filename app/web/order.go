@@ -15,7 +15,7 @@ func CreateTransaction(ctx *gin.Context) {
 	_data, _ := ctx.Get("data")
 	data := _data.(map[string]any)
 	_orderId, ok1 := data["order_id"].(string)
-	_money, ok2 := data["amount"].(float64)
+	_money_str, ok2 := data["amount"].(string)
 	_notifyUrl, ok3 := data["notify_url"].(string)
 	_redirectUrl, ok4 := data["redirect_url"].(string)
 	// ---
@@ -38,13 +38,7 @@ func CreateTransaction(ctx *gin.Context) {
 	}
 
 	// 计算交易金额
-	address, _amount := model.CalcTradeAmount(wallet, rate, _money)
-
-	// 解析请求地址
-	var _host = "http://" + ctx.Request.Host
-	if ctx.Request.TLS != nil {
-		_host = "https://" + ctx.Request.Host
-	}
+	address, _money, _amount := model.CalcTradeAmount(wallet, rate, _money_str)
 
 	// 创建交易订单
 	var _tradeId = help.GenerateTradeId()
@@ -75,7 +69,7 @@ func CreateTransaction(ctx *gin.Context) {
 	ctx.JSON(200, RespSuccJson(gin.H{
 		"trade_id":        _tradeId,
 		"order_id":        _orderId,
-		"amount":          _money,
+		"amount":          _money_str,
 		"actual_amount":   _amount,
 		"token":           address.Address,
 		"expiration_time": _expiredAt.Second(),

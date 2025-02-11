@@ -97,7 +97,7 @@ func GetNotifyFailedTradeOrders() ([]TradeOrders, error) {
 }
 
 // CalcTradeAmount 计算当前实际可用的交易金额
-func CalcTradeAmount(wa []WalletAddress, rate, money float64) (WalletAddress, string) {
+func CalcTradeAmount(wa []WalletAddress, rate float64, moneyStr string) (WalletAddress, float64, string) {
 	_calcMutex.Lock()
 	defer _calcMutex.Unlock()
 
@@ -110,6 +110,7 @@ func CalcTradeAmount(wa []WalletAddress, rate, money float64) (WalletAddress, st
 	}
 
 	var _atom = decimal.NewFromFloat(Atomicity)
+	money, _ := strconv.ParseFloat(moneyStr, 64)
 	var payAmount = strconv.FormatFloat(money/rate, 'f', 2, 64)
 	var _payAmount, _ = decimal.NewFromString(payAmount)
 	for {
@@ -120,7 +121,7 @@ func CalcTradeAmount(wa []WalletAddress, rate, money float64) (WalletAddress, st
 				continue
 			}
 
-			return address, _payAmount.String()
+			return address, money, _payAmount.String()
 		}
 
 		// 已经被占用，每次递增一个原子精度
