@@ -11,7 +11,6 @@ import (
 	"time"
 )
 
-// CreateTransaction 创建订单
 func CreateTransaction(ctx *gin.Context) {
 	_data, _ := ctx.Get("data")
 	data := _data.(map[string]any)
@@ -80,7 +79,24 @@ func CreateTransaction(ctx *gin.Context) {
 		"actual_amount":   _amount,
 		"token":           address.Address,
 		"expiration_time": _expiredAt.Second(),
-		"payment_url":     fmt.Sprintf("%s/pay/checkout-counter/%s", config.GetAppUri(_host), _tradeId),
 	}))
 	log.Info(fmt.Sprintf("订单创建成功，商户订单号：%s", _orderId))
+}
+
+func CheckStatus(ctx *gin.Context) {
+	var tradeId = ctx.Param("trade_id")
+	var order, ok = model.GetTradeOrder(tradeId)
+	if !ok {
+		ctx.JSON(200, RespFailJson(fmt.Errorf("订单不存在")))
+
+		return
+	}
+
+	var returnUrl string
+	if order.Status == model.OrderStatusSuccess {
+
+		returnUrl = order.ReturnUrl
+	}
+
+	ctx.JSON(200, gin.H{"trade_id": tradeId, "status": order.Status, "return_url": returnUrl})
 }

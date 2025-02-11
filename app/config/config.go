@@ -27,7 +27,6 @@ func init() {
 
 		panic(err)
 	}
-	println(execPath)
 	runPath = filepath.Dir(execPath)
 	dataPath = runPath + "/data"
 	if _, err := os.Stat(dataPath); os.IsNotExist(err) {
@@ -148,15 +147,6 @@ func GetTradeConfirmed() bool {
 	}
 
 	return false
-}
-
-func GetAppUri(host string) string {
-	if data := help.GetEnv("APP_URI"); data != "" {
-
-		return strings.TrimSpace(data)
-	}
-
-	return host
 }
 
 func GetTGBotToken() string {

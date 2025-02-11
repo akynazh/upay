@@ -7,55 +7,46 @@ Personal USDT payment gateway.
 ```ini
 # .env
 
+# Server HTTP listening address
+LISTEN=:8080
+
 # Order expiration time in seconds
 EXPIRE_TIME=600
-
 # USDT exchange rate: 7.4 means fixed at 7.4
 # ~1.02 means current rate +2%
 # ~0.97 means current rate -3%
 # +0.3 means add 0.3
 # -0.2 means subtract 0.2
 USDT_RATE=7.4
-
 # Transaction Authentication Token
 AUTH_TOKEN=xxxxxxxxxxxxxx
-
-# Server HTTP listening address
-LISTEN=:8080
-# Frontend checkout counter URL
-APP_URI=https://xxx.xxx
-
 # Wallet addresses to add on startup (separate multiple addresses with commas)
 WALLET_ADDRESS=xxxxxxxxxxxxxx
-# QR code image URL for the wallet address
-WALLET_PHOTO=https://xxx.xxx/xxx
-
-# Telegram Bot Token
-TG_BOT_TOKEN=xxxxxxxxxxxxxx
-# Telegram Bot Admin ID
-TG_BOT_ADMIN_ID=xxxxxxxxxxxxxx
-
+# Callback URL after order completion
+NOTIFY_URL=https://xxx.xxx/notify
+# Redirect URL after order completion
+REDIRECT_URL=https://xxx.xxx/redirect
 # Blockchain monitoring API (choose one)
 # TRONGRID API KEY
 TRON_GRID_API_KEY=xxxxxxxxxxxxxx
 # TRONSCAN API KEY
 TRON_SCAN_API_KEY=xxxxxxxxxxxxxx
 
-# Callback URL after order completion
-NOTIFY_URL=https://xxx.xxx/notify
-# Redirect URL after order completion
-REDIRECT_URL=https://xxx.xxx/redirect
+# Telegram Bot Token
+TG_BOT_TOKEN=xxxxxxxxxxxxxx
+# Telegram Bot Admin ID
+TG_BOT_ADMIN_ID=xxxxxxxxxxxxxx
 
 # Network confirmation required: 
 # 0: Disabled (faster callback)
 # 1: Enabled (prevents failed transactions)
-TRADE_IS_CONFIRMED=0
+TRADE_IS_CONFIRMED=1
 ```
 
 ## RUN
 
 ```sh
-# codesign --force --deep --sign - ./upay
+# macos codesign: codesign --force --deep --sign - ./upay
 go build -v -o upay . && ./upay
 # pm2 start upay
 ```
@@ -64,7 +55,7 @@ go build -v -o upay . && ./upay
 
 ### Create Transaction
 
-`POST /api/v1/order/create-transaction`
+`POST /api/order`
 
 ```json
 {
@@ -114,7 +105,7 @@ params['signature'] = generate_signature(params, auth_token)
 
 ### Check Order Status
 
-`GET /pay/check-status/:trade_id`
+`GET /api/order/:trade_id`
 
 Response example:
 
@@ -128,25 +119,3 @@ Response example:
     }
 }
 ```
-
-### Callback Notification
-
-When an order is completed, the system will send a POST request to the configured NOTIFY_URL:
-
-`POST NOTIFY_URL`
-
-```json
-{
-    "trade_id": "xxxxxx",      // Trade ID
-    "order_id": "123456",      // Merchant order ID
-    "amount": "100.00",        // Order amount (CNY)
-    "usdt_amount": "14.28",    // USDT amount
-    "status": "completed",     // Order status: 1 waiting 2 success 3 expired
-    "signature": "xxxxx"       // Signature
-}
-```
-
-Response Requirements:
-
-- The system must return a response with a 200 status code upon receiving the callback.
-- If a 200 status code is not received, the system will automatically retry the request up to three times.
