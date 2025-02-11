@@ -1,46 +1,54 @@
-# upay
+# UPay
+
+Personal USDT payment gateway.
 
 ## CONFIG
 
 ```ini
 # .env
 
-# 订单有效期，单位秒
+# Order expiration time in seconds
 EXPIRE_TIME=600
 
-# USDT 汇率，7.4 表示固定 7.4、~1.02 表示最新汇率上浮 2%、~0.97 表示下浮 3%、+0.3 表示加 0.3、-0.2 表示减 0.2
+# USDT exchange rate: 7.4 means fixed at 7.4
+# ~1.02 means current rate +2%
+# ~0.97 means current rate -3%
+# +0.3 means add 0.3
+# -0.2 means subtract 0.2
 USDT_RATE=7.4
 
-# 交易认证 Token
+# Transaction Authentication Token
 AUTH_TOKEN=xxxxxxxxxxxxxx
 
-# 服务器 HTTP 监听地址
+# Server HTTP listening address
 LISTEN=:8080
-# 前端收银台地址
+# Frontend checkout counter URL
 APP_URI=https://xxx.xxx
 
-# 启动时需要添加的钱包地址，多个请用半角符逗号分开
+# Wallet addresses to add on startup (separate multiple addresses with commas)
 WALLET_ADDRESS=xxxxxxxxxxxxxx
-# 钱包地址对应的二维码图片
+# QR code image URL for the wallet address
 WALLET_PHOTO=https://xxx.xxx/xxx
 
 # Telegram Bot Token
 TG_BOT_TOKEN=xxxxxxxxxxxxxx
-# Telegram Bot 管理员 ID
+# Telegram Bot Admin ID
 TG_BOT_ADMIN_ID=xxxxxxxxxxxxxx
 
-# 区块监控 API（二选一）
+# Blockchain monitoring API (choose one)
 # TRONGRID API KEY
 TRON_GRID_API_KEY=xxxxxxxxxxxxxx
 # TRONSCAN API KEY
 TRON_SCAN_API_KEY=xxxxxxxxxxxxxx
 
-# 订单完成后的回调接口
+# Callback URL after order completion
 NOTIFY_URL=https://xxx.xxx/notify
-# 订单完成后的重定向接口
+# Redirect URL after order completion
 REDIRECT_URL=https://xxx.xxx/redirect
 
-# 是否需要网络确认，禁用(0)可以提高回调速度，启用(1)则可以防止交易失败
+# Network confirmation required: 
+# 0: Disabled (faster callback)
+# 1: Enabled (prevents failed transactions)
 TRADE_IS_CONFIRMED=0
 ```
 
@@ -51,3 +59,94 @@ TRADE_IS_CONFIRMED=0
 go build -v -o upay . && ./upay
 # pm2 start upay
 ```
+
+## API
+
+### Create Transaction
+
+`POST /api/v1/order/create-transaction`
+
+```json
+{
+    "amount": "100.00",        // Order amount (CNY)
+    "order_id": "123456",      // Merchant order ID
+    "signature": "xxxxx"       // Signature
+}
+```
+
+Response example:
+
+```json
+{
+    "code": 200,
+    "data": {
+        "trade_id": "xxxxxx",  // Trade ID
+        "checkout_url": "http://xxx.xxx/pay/checkout-counter/xxxxxx" // Checkout counter URL
+    }
+}
+```
+
+How to generate signature:
+
+1. Sort parameters by parameter name in ASCII order
+2. Concatenate all parameters in "key=value&" format (Empty or null parameter values are not included)
+3. Append AUTH_TOKEN at the end
+4. Calculate MD5 of the final string to get the signature(lowercase)
+
+A python code example:
+
+```py
+import hashlib
+
+def generate_signature(params, auth_token):
+    sorted_params = dict(sorted(params.items()))
+    param_str = '&'.join([f"{k}={v}" for k, v in sorted_params.items()])
+    sign_str = param_str + auth_token
+    return hashlib.md5(sign_str.encode()).hexdigest()
+
+params = {
+    'amount': '100.00',
+    'order_id': '123456',
+}
+auth_token = 'your_auth_token'
+params['signature'] = generate_signature(params, auth_token)
+```
+
+### Check Order Status
+
+`GET /pay/check-status/:trade_id`
+
+Response example:
+
+```json
+{
+    "code": 200,
+    "data": {
+        "status": 1,   // Order status: 1 waiting 2 success 3 expired
+        "amount": "100.00",    // Order amount (CNY)
+        "usdt_amount": "14.28" // USDT amount
+    }
+}
+```
+
+### Callback Notification
+
+When an order is completed, the system will send a POST request to the configured NOTIFY_URL:
+
+`POST NOTIFY_URL`
+
+```json
+{
+    "trade_id": "xxxxxx",      // Trade ID
+    "order_id": "123456",      // Merchant order ID
+    "amount": "100.00",        // Order amount (CNY)
+    "usdt_amount": "14.28",    // USDT amount
+    "status": "completed",     // Order status: 1 waiting 2 success 3 expired
+    "signature": "xxxxx"       // Signature
+}
+```
+
+Response Requirements:
+
+- The system must return a response with a 200 status code upon receiving the callback.
+- If a 200 status code is not received, the system will automatically retry the request up to three times.
