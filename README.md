@@ -47,5 +47,7 @@ TRADE_IS_CONFIRMED=0
 ## RUN
 
 ```sh
-go build -v -o upay ./main && pm2 start upay
+# codesign --force --deep --sign - ./upay
+go build -v -o upay . && ./upay
+# pm2 start upay
 ```

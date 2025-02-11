@@ -27,6 +27,7 @@ func init() {
 
 		panic(err)
 	}
+	println(execPath)
 	runPath = filepath.Dir(execPath)
 	dataPath = runPath + "/data"
 	if _, err := os.Stat(dataPath); os.IsNotExist(err) {

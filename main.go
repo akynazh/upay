@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"runtime"
+
 	"github.com/akynazh/upay/app/config"
 	"github.com/akynazh/upay/app/model"
 	"github.com/akynazh/upay/app/monitor"
 	"github.com/akynazh/upay/app/web"
-	"os"
-	"os/signal"
-	"runtime"
 )
 
-const Version = "4.0.0"
+const Version = "1.0.0"
 
 func main() {
 	if err := model.Init(); err != nil {

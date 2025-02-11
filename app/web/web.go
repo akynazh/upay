@@ -82,13 +82,6 @@ func Start() {
 		orderRoute.POST("/create-transaction", CreateTransaction)
 	}
 
-	// 订单回调
-	callbackRoute := r.Group("/api/v1/callback")
-	{
-		callbackRoute.GET("/notify", NotifyCallback)
-		callbackRoute.GET("/redirect", RedirectCallback)
-	}
-
 	log.Info("Web 启动 Listen: ", listen)
 	err := r.Run(listen)
 	if err != nil {
