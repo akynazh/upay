@@ -142,4 +142,4 @@ resp = requests.get(f"http://localhost:8080/api/order/{trade_id}")
 print(resp.json())
 ```
 
-I also provides an interactive web payment interface (e.g., http://localhost:8080/) for testing order creation and queries.
+There is also an interactive web payment interface (static/index.html) for testing order creation and queries, visit "/" to give it a try.
