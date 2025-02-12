@@ -141,3 +141,5 @@ trade_id = resp.json()["data"]["trade_id"]
 resp = requests.get(f"http://localhost:8080/api/order/{trade_id}")
 print(resp.json())
 ```
+
+I also provides an interactive web payment interface (e.g., http://localhost:8080/) for testing order creation and queries.
