@@ -53,70 +53,91 @@ go build -v -o upay . && ./upay
 
 ## API
 
-### Create Transaction
+### Create Order
 
-`POST /api/order`
+**Endpoint:** `POST /api/order`
 
-```json
-{
-    "amount": "100.00",        // Order amount (CNY)
-    "order_id": "123456",      // Merchant order ID
-    "signature": "xxxxx"       // Signature
-}
-```
+**Request Parameters:**
 
-Response example:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| order_id | string | Yes | Merchant order ID |
+| amount | string | Yes | Order amount |
+| notify_url | string | Yes | Payment notification callback URL |
+| redirect_url | string | Yes | Redirect URL after payment |
+| signature | string | Yes | Request signature |
 
-```json
-{
-    "trade_id":        "string",
-    "order_id":        "string",
-    "amount":          100.0,
-    "actual_amount":   15.9,
-    "token":           "string",
-    "expiration_time": 600,
-}
-```
-
-How to generate signature:
+**Signature Generation Algorithm:**
 
 1. Sort parameters by parameter name in ASCII order
 2. Concatenate all parameters in "key=value&" format (Empty or null parameter values are not included)
 3. Append AUTH_TOKEN at the end
 4. Calculate MD5 of the final string to get the signature(lowercase)
 
-A python code example:
-
-```py
-import hashlib
-
-def generate_signature(params, auth_token):
-    sorted_params = dict(sorted(params.items()))
-    param_str = '&'.join([f"{k}={v}" for k, v in sorted_params.items()])
-    sign_str = param_str + auth_token
-    return hashlib.md5(sign_str.encode()).hexdigest()
-
-params = {
-    'amount': '100.00',
-    'order_id': '123456',
+**Response:**
+```json
+{
+    "code": 200,
+    "msg": "success",
+    "data": {
+        "trade_id": "570be838-8df7-4492-a663-bbe27f7f340a",
+        "order_id": "order_123456",
+        "amount": "100.0",
+        "actual_amount": "13.51",
+        "wallet_address": "TRxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "expiration_time": "2024-01-20 15:04:05"
+    }
 }
-auth_token = 'your_auth_token'
-params['signature'] = generate_signature(params, auth_token)
 ```
 
 ### Check Order Status
 
-`GET /api/order/:trade_id`
+**Endpoint:** `GET /api/order/{trade_id}`
 
-Response example:
-
+**Response:**
 ```json
 {
     "code": 200,
+    "msg": "success",
     "data": {
-        "status": 1,   // Order status: 1 waiting 2 success 3 expired
-        "amount": "100.00",    // Order amount (CNY)
-        "usdt_amount": "14.28" // USDT amount
+        "trade_id": "570be838-8df7-4492-a663-bbe27f7f340a",
+        "status": 1,
+        "expiration_time": "2024-01-20 15:04:05"
     }
 }
+```
+
+**Status Values:**
+- 1: Payment pending
+- 2: Payment successful
+- 3: Order expired
+
+## Example
+
+```py
+import hashlib
+import requests
+
+
+def generate_signature(params, auth_token):
+    sorted_params = dict(sorted(params.items()))
+    param_str = "&".join([f"{k}={v}" for k, v in sorted_params.items()])
+    sign_str = param_str + auth_token
+    return hashlib.md5(sign_str.encode()).hexdigest()
+
+
+params = {
+    "amount": "100.0",
+    "notify_url": "https://xxx/notify",
+    "order_id": "order_123456",
+    "redirect_url": "https://xxx/redirect",
+}
+auth_token = "abcdefg"
+params["signature"] = generate_signature(params, auth_token)
+resp = requests.post("http://localhost:8080/api/order", json=params)
+print(resp.json())
+
+trade_id = resp.json()["data"]["trade_id"]
+resp = requests.get(f"http://localhost:8080/api/order/{trade_id}")
+print(resp.json())
 ```

@@ -14,6 +14,17 @@ func Start() {
 	listen := config.GetListen()
 	r := gin.New()
 	r.Use(gin.LoggerWithWriter(log.GetWriter()), gin.Recovery())
+
+	// Serve static files
+	r.Static("/static", "./static")
+	r.LoadHTMLGlob("static/*.html")
+
+	// Add index route
+	r.GET("/", func(c *gin.Context) {
+		c.HTML(200, "index.html", nil)
+	})
+
+	// Order api
 	route := r.Group("/api/order")
 	{
 		route.GET("/:trade_id", CheckStatus)

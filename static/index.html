@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UPAY Management</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        .container {
+            width: 50%;
+            margin: 20px auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .card {
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        [v-cloak] {
+            display: none;
+        }
+        .el-tabs {
+            width: 100%;
+        }
+        .el-tab-pane {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .el-form {
+            width: 100%;
+        }
+        /* New styles for UI optimization */
+        .el-tabs__header {
+            width: 100%;
+        }
+        .el-tabs__nav-wrap {
+            text-align: center;
+        }
+        .el-tabs__nav {
+            float: none !important;
+            display: inline-block;
+        }
+        .button-group {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        .result-card {
+            margin-top: 30px;
+        }
+        .status-form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        .status-form .el-form-item {
+            margin-bottom: 0;
+            width: 100%;
+        }
+        .status-input {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container" v-cloak>
+        <el-tabs v-model="activeTab">
+            <el-tab-pane label="Create Order" name="create">
+                <el-card class="card">
+                    <el-form :model="createForm" label-width="120px">
+                        <el-form-item label="Auth Token">
+                            <el-input v-model="createForm.auth_token" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item label="Order ID">
+                            <el-input v-model="createForm.order_id"></el-input>
+                        </el-form-item>
+                        <el-form-item label="Amount">
+                            <el-input v-model="createForm.amount" type="number"></el-input>
+                        </el-form-item>
+                        <el-form-item label="Notify URL">
+                            <el-input v-model="createForm.notify_url"></el-input>
+                        </el-form-item>
+                        <el-form-item label="Redirect URL">
+                            <el-input v-model="createForm.redirect_url"></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <div class="button-group">
+                                <el-button type="primary" @click="createOrder">Create Order</el-button>
+                                <el-button @click="resetCreateForm">Reset</el-button>
+                            </div>
+                        </el-form-item>
+                    </el-form>
+                </el-card>
+                <el-card v-if="createResult" class="card result-card">
+                    <pre v-text="createResult"></pre>
+                </el-card>
+            </el-tab-pane>
+            
+            <el-tab-pane label="Check Status" name="status">
+                <el-card class="card">
+                    <el-form :model="statusForm" class="status-form">
+                        <el-form-item label="Trade ID" label-width="120px" class="status-input">
+                            <el-input v-model="statusForm.trade_id"></el-input>
+                        </el-form-item>
+                        <div class="button-group">
+                            <el-button type="primary" @click="checkStatus">Check Status</el-button>
+                            <el-button @click="resetStatusForm">Reset</el-button>
+                        </div>
+                    </el-form>
+                </el-card>
+                <el-card v-if="statusResult" class="card result-card">
+                    <pre v-text="statusResult"></pre>
+                </el-card>
+            </el-tab-pane>
+        </el-tabs>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            delimiters: ['${', '}'], // Change Vue delimiters to avoid conflict with Go templates
+            data: {
+                activeTab: 'create',
+                createForm: {
+                    auth_token: '',
+                    order_id: '',
+                    amount: '',
+                    notify_url: '',
+                    redirect_url: '',
+                },
+                statusForm: {
+                    trade_id: '',
+                },
+                createResult: null,
+                statusResult: null
+            },
+            methods: {
+                generateSignature(params, authToken) {
+                    const sortedParams = {};
+                    Object.keys(params).sort().forEach(key => {
+                        sortedParams[key] = params[key];
+                    });
+                    
+                    const paramStr = Object.entries(sortedParams)
+                        .map(([k, v]) => `${k}=${v}`)
+                        .join('&');
+                    
+                    const signStr = paramStr + authToken;
+                    return this.md5(signStr);
+                },
+                md5(string) {
+                    return CryptoJS.MD5(string).toString();
+                },
+                async createOrder() {
+                    const params = {...this.createForm};
+                    const authToken = params.auth_token;
+                    delete params.auth_token;  // Remove auth_token from params before generating signature
+                    params.signature = this.generateSignature(params, authToken);
+                    
+                    try {
+                        const response = await axios.post('/api/order', params);
+                        this.createResult = response.data;
+                    } catch (error) {
+                        this.$message.error(error.response?.data?.error || 'Failed to create order');
+                    }
+                },
+                async checkStatus() {
+                    try {
+                        const response = await axios.get(`/api/order/${this.statusForm.trade_id}`);
+                        this.statusResult = response.data;
+                    } catch (error) {
+                        this.$message.error(error.response?.data?.error || 'Failed to check status');
+                    }
+                },
+                resetCreateForm() {
+                    this.createForm = {
+                        auth_token: '',
+                        order_id: '',
+                        amount: '',
+                        notify_url: '',
+                        redirect_url: '',
+                    };
+                    this.createResult = null;
+                },
+                resetStatusForm() {
+                    this.statusForm.trade_id = '';
+                    this.statusResult = null;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

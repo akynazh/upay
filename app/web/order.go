@@ -18,7 +18,6 @@ func CreateTransaction(ctx *gin.Context) {
 	_money_str, ok2 := data["amount"].(string)
 	_notifyUrl, ok3 := data["notify_url"].(string)
 	_redirectUrl, ok4 := data["redirect_url"].(string)
-	// ---
 	if !ok1 || !ok2 || !ok3 || !ok4 {
 		log.Warn("参数错误", data)
 		ctx.JSON(200, RespFailJson(fmt.Errorf("参数错误")))
@@ -71,8 +70,8 @@ func CreateTransaction(ctx *gin.Context) {
 		"order_id":        _orderId,
 		"amount":          _money_str,
 		"actual_amount":   _amount,
-		"token":           address.Address,
-		"expiration_time": _expiredAt.Second(),
+		"wallet_address":  address.Address,
+		"expiration_time": _expiredAt.Format("2006-01-02 15:04:05"),
 	}))
 	log.Info(fmt.Sprintf("订单创建成功，商户订单号：%s", _orderId))
 }
@@ -86,11 +85,18 @@ func CheckStatus(ctx *gin.Context) {
 		return
 	}
 
-	var returnUrl string
 	if order.Status == model.OrderStatusSuccess {
-
-		returnUrl = order.ReturnUrl
+		ctx.JSON(200, RespSuccJson(gin.H{
+			"trade_id":        tradeId,
+			"status":          order.Status,
+			"expiration_time": order.ExpiredAt.Format("2006-01-02 15:04:05"),
+			"return_url":      order.ReturnUrl,
+		}))
+	} else {
+		ctx.JSON(200, RespSuccJson(gin.H{
+			"trade_id":        tradeId,
+			"status":          order.Status,
+			"expiration_time": order.ExpiredAt.Format("2006-01-02 15:04:05"),
+		}))
 	}
-
-	ctx.JSON(200, gin.H{"trade_id": tradeId, "status": order.Status, "return_url": returnUrl})
 }
